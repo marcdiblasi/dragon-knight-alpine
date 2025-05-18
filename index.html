@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Dragon Knight - Alpine Edition</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script src="js/monsters.js"></script>
+    <script src="js/levels.js"></script>
+    <script>
+        function createPersistentState(initialState, storageKey) {
+            return {
+                init() {
+                    // Load saved state or use initial state
+                    const stored = localStorage.getItem(storageKey);
+                    const data = stored ? JSON.parse(stored) : initialState;
+
+                    // Assign all properties to Alpine's reactive system
+                    Object.keys(data).forEach(key => {
+                        this[key] = data[key];
+
+                        // Watch each property individually
+                        this.$watch(key, (value) => {
+                            const stateToSave = {};
+                            Object.keys(initialState).forEach(k => {
+                                stateToSave[k] = this[k];
+                            });
+                            localStorage.setItem(storageKey, JSON.stringify(stateToSave));
+                        });
+                    });
+                },
+                ...initialState // Spread initial state for autocomplete
+            };
+        }
+    </script>
+</head>
+
+<body x-data="createPersistentState({
+    name: '',
+    difficulty: 'Easy',
+    characterClass: 'Mage',
+    currently: 'Setup',
+    townAction: '',
+    buyingitem: null,
+    buyingmap: null,
+    
+    town: {},
+    lat: 0,
+    long: 0,
+    
+    level: 1,
+    exp: 0,
+    expBonus: 0,
+    gold: 100,
+    goldBonus: 0,
+
+    strength: 5,
+    dexterity: 5,
+    attackpower: 5,
+    defensepower: 5,
+
+    hp: 15,
+    maxhp: 15,
+    mp: 0,
+    maxmp: 0,
+    tp: 10,
+    maxtp: 10,
+    weapon: 'None',
+    armor: 'None',
+    shield: 'None',
+    slot1: 'None',
+    slot2: 'None',
+    slot3: 'None',
+
+    dropcode: 0,
+
+    spells: [],
+    unlockedTowns: [1],
+
+    currentFight: {}, // monster, hp, sleep, immune, 
+    currentUberDamage: 0,
+    currentUberDefense: 0,
+}, 'dragon-knight')">
+    <div class="container" x-data="{
+        drops: {
+            1: {name: 'Life Pebble', mlevel: 1, type: 1, attributes: { maxhp: 10 }},
+            2: {name: 'Life Stone', mlevel: 10, type: 1, attributes: { maxhp: 25 }},
+            3: {name: 'Life Rock', mlevel: 25, type: 1, attributes: { maxhp: 50 }},
+            4: {name: 'Magic Pebble', mlevel: 1, type: 1, attributes: { maxmp: 10 }},
+            5: {name: 'Magic Stone', mlevel: 10, type: 1, attributes: { maxmp: 25 }},
+            6: {name: 'Magic Rock', mlevel: 25, type: 1, attributes: { maxmp: 50 }},
+            7: {name: `Dragon's Scale`, mlevel: 10, type: 1, attributes: { defensepower: 25 }},
+            8: {name: `Dragon's Plate`, mlevel: 30, type: 1, attributes: { defensepower: 50 }},
+            9: {name: `Dragon's Claw`, mlevel: 10, type: 1, attributes: { attackpower: 25 }},
+            10: {name: `Dragon's Tooth`, mlevel: 30, type: 1, attributes: { attackpower: 50 }},
+            11: {name: `Dragon's Tear`, mlevel: 35, type: 1, attributes: { strength: 50 }},
+            12: {name: `Dragon's Wing`, mlevel: 35, type: 1, attributes: { dexterity: 50 }},
+            13: {name: `Demon's Sin`, mlevel: 35, type: 1, attributes: { maxhp: -50, strength: 50 }},
+            14: {name: `Demon's Fall`, mlevel: 35, type: 1, attributes: { maxmp: -50, strength: 50 }},
+            15: {name: `Demon's Lie`, mlevel: 45, type: 1, attributes: { maxhp: -100, strength: 100 }},
+            16: {name: `Demon's Hate`, mlevel: 45, type: 1, attributes: { maxmp: -100, strength: 100 }},
+            17: {name: `Angel's Joy`, mlevel: 25, type: 1, attributes: { maxhp: 25, strength: 25 }},
+            18: {name: `Angel's Rise`, mlevel: 30, type: 1, attributes: { maxhp: 50, strength: 50 }},
+            19: {name: `Angel's Truth`, mlevel: 35, type: 1, attributes: { maxhp: 75, strength: 75 }},
+            20: {name: `Angel's Love`, mlevel: 40, type: 1, attributes: { maxhp: 100, strength: 100 }},
+            21: {name: `Seraph's Joy`, mlevel: 25, type: 1, attributes: { maxmp: 25, dexterity: 25 }},
+            22: {name: `Seraph's Rise`, mlevel: 30, type: 1, attributes: { maxmp: 50, dexterity: 50 }},
+            23: {name: `Seraph's Truth`, mlevel: 35, type: 1, attributes: { maxmp: 75, dexterity: 75 }},
+            24: {name: `Seraph's Love`, mlevel: 40, type: 1, attributes: { maxmp: 100, dexterity: 100 }},
+            25: {name: 'Ruby', mlevel: 50, type: 1, attributes: { maxhp: 150 }},
+            26: {name: 'Pearl', mlevel: 50, type: 1, attributes: { maxmp: 150 }},
+            27: {name: 'Emerald', mlevel: 50, type: 1, attributes: { strength: 150 }},
+            28: {name: 'Topaz', mlevel: 50, type: 1, attributes: { dexterity: 150 }},
+            29: {name: 'Obsidian', mlevel: 50, type: 1, attributes: { attackpower: 150 }},
+            30: {name: 'Diamond', mlevel: 50, type: 1, attributes: { defensepower: 150 }},
+            31: {name: 'Memory Drop', mlevel: 5, type: 1, attributes: { expbonus: 10 }},
+            32: {name: 'Fortune Drop', mlevel: 5, type: 1, attributes: { goldbonus: 10 }}
+        },
+        items: {
+            1: {name: 'Stick', type: 'weapon', buycost: 10, attribute: 2},
+            2: {name: 'Branch', type: 'weapon', buycost: 30, attribute: 4},
+            3: {name: 'Club', type: 'weapon', buycost: 40, attribute: 5},
+            4: {name: 'Dagger', type: 'weapon', buycost: 90, attribute: 8},
+            5: {name: 'Hatchet', type: 'weapon', buycost: 150, attribute: 12},
+            6: {name: 'Axe', type: 'weapon', buycost: 200, attribute: 16},
+            7: {name: 'Brand', type: 'weapon', buycost: 300, attribute: 25},
+            8: {name: 'Poleaxe', type: 'weapon', buycost: 500, attribute: 35},
+            9: {name: 'Broadsword', type: 'weapon', buycost: 800, attribute: 45},
+            10: {name: 'Battle Axe', type: 'weapon', buycost: 1200, attribute: 50},
+            11: {name: 'Claymore', type: 'weapon', buycost: 2000, attribute: 60},
+            12: {name: 'Dark Axe', type: 'weapon', buycost: 3000, attribute: 100, special: {expbonus: -5}},
+            13: {name: 'Dark Sword', type: 'weapon', buycost: 4500, attribute: 125, special: {expbonus: -10}},
+            14: {name: 'Bright Sword', type: 'weapon', buycost: 6000, attribute: 100, special: {expbonus: 10}},
+            15: {name: 'Magic Sword', type: 'weapon', buycost: 10000, attribute: 150, special: {maxmp: 50}},
+            16: {name: 'Destiny Blade', type: 'weapon', buycost: 50000, attribute: 250, special: {strength: 50}},
+            17: {name: 'Skivvies', type: 'armor', buycost: 25, attribute: 2, special: {goldbonus: 10}},
+            18: {name: 'Clothes', type: 'armor', buycost: 50, attribute: 5},
+            19: {name: 'Leather Armor', type: 'armor', buycost: 75, attribute: 10},
+            20: {name: 'Hard Leather Armor', type: 2, buycost: 150, attribute: 25},
+            21: {name: 'Chain Mail', type: 'armor', buycost: 300, attribute: 30},
+            22: {name: 'Bronze Plate', type: 'armor', buycost: 900, attribute: 50},
+            23: {name: 'Iron Plate', type: 'armor', buycost: 2000, attribute: 100},
+            24: {name: 'Magic Armor', type: 'armor', buycost: 4000, attribute: 125, special: {maxmp: 50}},
+            25: {name: 'Dark Armor', type: 'armor', buycost: 5000, attribute: 150, special: {expbonus: -10}},
+            26: {name: 'Bright Armor', type: 'armor', buycost: 10000, attribute: 175, special: {expbonus: 10}},
+            27: {name: 'Destiny Raiment', type: 'armor', buycost: 50000, attribute: 200, special: {dexterity: 50}},
+            28: {name: 'Reed Shield', type: 'shield', buycost: 50, attribute: 2},
+            29: {name: 'Buckler', type: 'shield', buycost: 100, attribute: 4},
+            30: {name: 'Small Shield', type: 'shield', buycost: 500, attribute: 10},
+            31: {name: 'Large Shield', type: 'shield', buycost: 2500, attribute: 30},
+            32: {name: 'Silver Shield', type: 'shield', buycost: 10000, attribute: 60},
+            33: {name: 'Destiny Aegis', type: 'shield', buycost: 25000, attribute: 100, special: {maxhp: 50}}
+        },
+        levels: {},
+        monsters: {},
+        spells: {
+            1: {name: 'Heal', mp: 5, attribute: 10, type: 1},
+            2: {name: 'Revive', mp: 10, attribute: 25, type: 1},
+            3: {name: 'Life', mp: 25, attribute: 50, type: 1},
+            4: {name: 'Breath', mp: 50, attribute: 100, type: 1},
+            5: {name: 'Gaia', mp: 75, attribute: 150, type: 1},
+            6: {name: 'Hurt', mp: 5, attribute: 15, type: 2},
+            7: {name: 'Pain', mp: 12, attribute: 35, type: 2},
+            8: {name: 'Maim', mp: 25, attribute: 70, type: 2},
+            9: {name: 'Rend', mp: 40, attribute: 100, type: 2},
+            10: {name: 'Chaos', mp: 50, attribute: 130, type: 2},
+            11: {name: 'Sleep', mp: 10, attribute: 5, type: 3},
+            12: {name: 'Dream', mp: 30, attribute: 9, type: 3},
+            13: {name: 'Nightmare', mp: 60, attribute: 13, type: 3},
+            14: {name: 'Craze', mp: 10, attribute: 10, type: 4},
+            15: {name: 'Rage', mp: 20, attribute: 25, type: 4},
+            16: {name: 'Fury', mp: 30, attribute: 50, type: 4},
+            17: {name: 'Ward', mp: 10, attribute: 10, type: 5},
+            18: {name: 'Fend', mp: 20, attribute: 25, type: 5},
+            19: {name: 'Barrier', mp: 30, attribute: 50, type: 5}
+        },
+        towns: {
+            1: {id: 1, name: 'Midworld', latitude: 0, longitude: 0, innprice: 5, mapprice: 0, travelpoints: 0, itemslist: [1, 2, 3, 17, 18, 19, 28, 29]},
+            2: {id: 2, name: 'Roma', latitude: 30, longitude: 30, innprice: 10, mapprice: 25, travelpoints: 5, itemslist: [2, 3, 4, 18, 19, 29]},
+            3: {id: 3, name: 'Bris', latitude: 70, longitude: -70, innprice: 25, mapprice: 50, travelpoints: 15, itemslist: [2, 3, 4, 5, 18, 19, 20, 29.30]},
+            4: {id: 4, name: 'Kalle', latitude: -100, longitude: 100, innprice: 40, mapprice: 100, travelpoints: 30, itemslist: [5, 6, 8, 10, 12, 21, 22, 23, 29, 30]},
+            5: {id: 5, name: 'Narcissa', latitude: -130, longitude: -130, innprice: 60, mapprice: 500, travelpoints: 50, itemslist: [4, 7, 9, 11, 13, 21, 22, 23, 29, 30, 31]},
+            6: {id: 6, name: 'Hambry', latitude: 170, longitude: 170, innprice: 90, mapprice: 1000, travelpoints: 80, itemslist: [10, 11, 12, 13, 14, 23, 24, 30, 31]},
+            7: {id: 7, name: 'Gilead', latitude: 200, longitude: -200, innprice: 100, mapprice: 3000, travelpoints: 110, itemslist: [12, 13, 14, 15, 24, 25, 26, 32]},
+            8: {id: 8, name: 'Endworld', latitude: -250, longitude: -250, innprice: 125, mapprice: 9000, travelpoints: 160, itemslist: [16, 27, 33]}
+        },
+
+        load: async function() {
+            this.monsters = globalMonsters;
+            this.levels   = globalLevels;
+        },
+    
+        move: function(x, y) {
+            if (this.currently === 'Fighting') {
+                return;
+            }
+
+            this.lat += x;
+            this.long += y;
+
+            // Figure out if you're in town
+            for (const key in this.towns) {
+                const town = this.towns[key];
+                if (this.lat === town.latitude && this.long === town.longitude) {
+                    this.town = town;
+                    this.currently = 'In Town';
+                    return;
+                }
+            }
+
+            // Figure out if you're fighting
+            if (0 === Math.floor(Math.random() * 5)) {
+                this.currently = 'Fighting';
+                this.startFight();
+
+                return;
+            }
+
+            // Just exploring
+            currently = 'Exploring'
+        },
+
+        restAtInn: function() {
+            if (this.town.innprice > this.gold) {
+                return;
+            }
+
+            this.gold -= this.town.innprice;
+
+            this.hp = this.maxhp;
+            this.mp = this.maxmp;
+            this.tp = this.maxtp;
+
+            townAction = '';
+        },
+
+        buyItem: function(itemId) {
+            if (this.gold < this.items[itemId].buycost) {
+                return;
+            }
+
+            this.gold -= this.items[itemId].buycost;
+
+            if (this.items[itemId].type === 'weapon') {
+                if (this.weapon !== 'None') {
+                    this.attackpower -= this.weapon.attribute;
+
+                    if (this.weapon.special) {
+                        let keys = Object.keys(this.weapon.special);
+                        for (let i = 0; i < keys.length; i++) {
+                            this[keys[i]] -= this.weapon.special[keys[i]];
+                        }
+                    }
+                }
+
+                this.attackpower += this.items[itemId].attribute;
+                if (this.weapon.special) {
+                    let keys = Object.keys(this.weapon.special);
+                    for (let i = 0; i < keys.length; i++) {
+                        this[keys[i]] += this.weapon.special[keys[i]];
+                    }
+                }
+
+                this.weapon = this.items[itemId];
+            } else if (this.items[itemId].type === 'armor') {
+                if (this.armor !== 'None') {
+                    this.defensepower -= this.armor.attribute;
+
+                    if (this.armor.special) {
+                        let keys = Object.keys(this.armor.special);
+                        for (let i = 0; i < keys.length; i++) {
+                            this[keys[i]] -= this.armor.special[keys[i]];
+                        }
+                    }
+                }
+
+                this.defensepower += this.items[itemId].attribute;
+                if (this.armor.special) {
+                    let keys = Object.keys(this.armor.special);
+                    for (let i = 0; i < keys.length; i++) {
+                        this[keys[i]] += this.armor.special[keys[i]];
+                    }
+                }
+
+                this.armor = this.items[itemId];
+            } else if (this.items[itemId].type === 'shield') {
+                if (this.shield !== 'None') {
+                    this.defensepower -= this.shield.attribute;
+
+                    if (this.shield.special) {
+                        let keys = Object.keys(this.shield.special);
+                        for (let i = 0; i < keys.length; i++) {
+                            this[keys[i]] -= this.shield.special[keys[i]];
+                        }
+                    }
+                }
+
+                this.defensepower += this.items[itemId].attribute;
+                if (this.shield.special) {
+                    let keys = Object.keys(this.shield.special);
+                    for (let i = 0; i < keys.length; i++) {
+                        this[keys[i]] += this.shield.special[keys[i]];
+                    }
+                }
+
+                this.shield = this.items[itemId];
+            }
+
+            if (this.hp > this.maxhp) {
+                this.hp = this.maxhp;
+            }
+            if (this.mp > this.maxmp) {
+                this.mp = this.maxmp;
+            }
+            if (this.tp > this.maxtp) {
+                this.tp = this.maxtp;
+            }
+
+            this.townAction = '';
+        },
+
+        latitude: function(lat = null) {
+            if (lat === null) {
+                lat = this.lat;
+            }
+            
+            if (lat < 0) {
+                return Math.abs(lat) + 'W';
+            } else {
+                return lat + 'E';
+            }
+        },
+
+        longitude: function(long = null) {
+            if (long === null) {
+                long = this.long;
+            }
+
+            if (long < 0) {
+                return Math.abs(long) + 'N';
+            } else {
+                return long + 'S';
+            }
+        },
+
+        buyMap: function() {
+            let town = this.towns[this.buyingmap];
+            if (this.gold < town.mapprice) {
+                this.townAction = '';
+                this.buyingmap = null;
+                return;
+            }
+
+            this.gold -= town.mapprice;
+
+            this.unlockedTowns.push(town.id);
+            this.townAction = '';
+            this.buyingmap = null;
+        },
+
+        teleport: function(town) {
+            if (this.currently === 'Fighting') {
+                return;
+            }
+
+            if (this.tp < town.travelpoints) {
+                return;
+            }
+
+            this.tp -= town.travelpoints;
+
+            this.lat = town.latitude;
+            this.long = town.longitude;
+
+            this.town = town;
+            this.currently = 'In Town';
+        },
+
+        startFight: function() {
+            const maxLevel = Math.floor(Math.max(Math.abs(this.lat) + 5, Math.abs(this.long) + 5) / 5);
+            const minLevel = maxLevel - 2 > 1 ? maxLevel - 2 : 1;
+
+            const monsterLevel = rand(minLevel, maxLevel);
+            const monsterId = rand(0, this.monsters[monsterLevel].length);
+            const monster = this.monsters[monsterLevel][monsterId];
+
+            this.monster = monster;
+            this.monster.hp = rand(monster.maxhp / 5 * 4, monster.maxhp);
+            if (this.difficulty === 'Medium') {
+                this.monster.hp = Math.ceil(this.monster.hp * 1.2);
+            } else if (this.difficulty === 'Hard') {
+                this.monster.hp = Math.ceil(this.monster.hp * 1.5);
+            }
+
+            this.monster.sleep = 0;
+            this.monster.chanceToSwingFirst = (rand(1, 10) + Math.ceil(Math.sqrt(this.dexterity))) > (rand(1, 7) + Math.ceil(Math.sqrt(this.monster.maxdam)));
+        },
+
+        rand: function(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        },
+    }" x-init="load()">
+
+        <header>
+            <img src="images/logo.gif" alt="Dragon Knight" class="logo" />
+            <!-- todo: add help -->
+        </header>
+
+        <div class="setup" x-show="currently === 'Setup'" x-cloak>
+            <h3>
+                Welcome adventurer!<br />
+                Please enter your name and select your class and difficulty level.
+            </h3>
+            <div class="form-element">
+                <label for="setupCharacterName">Character Name</label>
+                <input type="text" x-model="name" size="30" maxlength="30" pattern="[A-z0-9_\-]+" />
+            </div>
+            <div class="form-element">
+                <label for="setupCharacterClass">Character Class</label>
+                <select x-model="characterClass" class="class">
+                    <option value="Mage">Mage</option>
+                    <option value="Warrior">Warrior</option>
+                    <option value="Paladin">Paladin</option>
+                </select>
+            </div>
+            <div class="form-element">
+                <label for="setupCharacterDifficulty">Difficulty</label>
+                <select x-model="difficulty" class="difficulty">
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                </select>
+            </div>
+            <div class="form-element">
+                <button @click="
+                    currently = 'In Town';
+                    town = towns[1];
+                ">Start</button>
+            </div>
+        </div>
+
+        <main x-show="currently !== 'Setup'" x-cloak>
+            <section class="left">
+                <div class="title">
+                    <img src="images/button_location.gif" alt="Location" title="Location">
+                </div>
+                <div class="sectionWrapper">
+                    <div>Currently: <span x-text="currently.toLowerCase().replace(/\b[a-z]/g, function(letter) {
+                        return letter.toUpperCase();
+                    });"></span></div>
+                    <div>Latitude: <span x-text="latitude()"></span></div>
+                    <div>Longitude: <span x-text="longitude" ()></span></div>
+                    View Map
+
+                    <div class="north-wrapper"><a class="move-north" @click="move(0, -1)"><img
+                                src="images/compass_01.gif" /></a></div>
+                    <div class="west-east-wrapper">
+                        <a class="move-west" @click="move(-1, 0)"><img src="images/compass_02.gif" /></a><a
+                            class="move-east" @click="move(1, 0)"><img src="images/compass_03.gif" /></a>
+                    </div>
+                    <div class="south-wrapper"><a class="move-south" @click="move(0, 1)"><img
+                                src="images/compass_04.gif" /></a></div>
+                </div>
+                <div class="title">
+                    <img src="images/button_towns.gif" alt="Towns" title="Towns">
+                </div>
+                <div class="sectionWrapper">
+                    <div x-show="currently === 'In Town'">Welcome to <span x-text="town.name"></span></div>
+
+                    <div x-show="unlockedTowns.length > 0">
+                        Travel to:
+                        <template x-for="townid in unlockedTowns" :key="townid">
+                            <div>
+                                <a href="#" @click="teleport(towns[townid])" x-text="towns[townid].name"></a>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </section>
+
+            <section class="center">
+                <div x-show="currently === 'In Town'">
+                    <div x-show="townAction === ''">
+                        <div class="title">
+                            <img :src="'images/town_' + town.id + '.gif'" :alt="'Welcome to ' + town.name"
+                                :title="'Welcome to ' + town.name">
+
+                        </div>
+                        <div class="sectionWrapper">
+                            <div>Town Options:</div>
+                            <ul>
+                                <li><a href="#" @click="townAction = 'Inn'">Rest at the Inn</a></li>
+                                <li><a href="#" @click="townAction = 'Shop'">Buy Weapons/Armor</a></li>
+                                <li><a href="#" @click="townAction = 'Maps'">Buy Maps</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div x-show="townAction === 'Inn'">
+                        <div class="sectionWrapper">
+                            <p>Resting at the inn will refill your current HP, MP, and TP to their maximum levels.</p>
+
+                            <p>A night's sleep at this Inn will cost you <strong x-text="town.innprice"></strong> gold.
+                                Is
+                                that
+                                ok?</p>
+
+                            <div>
+                                <button @click="restAtInn()">Yes</button>
+                                <button @click="townAction = ''">No</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div x-show="townAction === 'Shop'">
+                        <div class="sectionWrapper">
+                            <p>Buying weapons will increase your Attack Power. Buying armor and shields will increase
+                                your
+                                Defense Power.</p>
+
+                            <p>Click an item name to purchase it.</p>
+
+                            <p>The following items are available at this town:</p>
+
+                            <table class="town-table">
+                                <template x-for="item in town.itemslist" :key="item">
+                                    <tr>
+                                        <td>
+                                            <img :src="'images/icon_' + items[item].type + '.gif'"
+                                                :alt="items[item].type" />
+                                            <a href="#" @click="buyingitem = item; townAction = 'Shop-confirm'"><span
+                                                    x-text="items[item].name"></span></a>
+                                        </td>
+                                        <td>
+                                            <span x-text="items[item].type === 'weapon' ? 'Attack' : 'Defence'"></span>
+                                            Power:
+                                            <strong x-text="items[item].attribute"></strong>
+                                        </td>
+                                        <td>
+                                            Price: <strong x-text="items[item].buycost + ' gold'"></strong>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </table>
+
+                            <p>If you've changed your mind, you may also return back to <a href="#"
+                                    @click="townAction = ''">town</a>.</p>
+                        </div>
+                    </div>
+                    <div x-show="townAction === 'Shop-confirm'">
+                        <div class="sectionWrapper">
+                            <p>You are buying the <span x-text="buyingitem ? items[buyingitem].name : ''"></span> for
+                                <strong x-text="(buyingitem ? items[buyingitem].buycost : '') + ' gold'"></strong>. Is
+                                that
+                                okay?
+                            </p>
+
+                            <div>
+                                <button @click="buyItem(buyingitem)">Yes</button>
+                                <button @click="townAction = 'Shop'">No</button>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div x-show="townAction === 'Maps'">
+                        <div class="sectionWrapper">
+                            <p>Buying maps will put the town in your Travel To box, and it won't cost you as many TP to
+                                get
+                                there.</p>
+
+                            <p>Click a town name to purchase its map.</p>
+
+                            <table class="town-table">
+                                <template x-for="(town, townId) in towns" :key="townId">
+                                    <tr x-data="{unlocked: unlockedTowns.includes(parseInt(townId))}">
+                                        <td>
+                                            <a href="#" @click="buyingmap = townId; townAction = 'Maps-confirm'"
+                                                x-show="!unlocked">
+                                                <span x-text="town.name"></span>
+                                            </a>
+                                            <span class="light" x-show="unlocked" x-text="town.name"></span>
+                                        </td>
+                                        <td>
+                                            <span x-show="!unlocked">
+                                                Price: <strong x-text="town.mapprice + ' gold'"></strong>
+                                            </span>
+                                            <span x-show="unlocked" class="light">Already mapped.</span>
+                                        </td>
+                                        <td>
+                                            <span x-show="!unlocked">Buy map to reveal details.</span>
+                                            <span x-show="unlocked" class="light">
+                                                Location: <span x-text="latitude(town.latitude)"></span>,
+                                                <span x-text="longitude(town.longitude)"></span>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span x-show="unlocked" class="light">
+                                                TP: <span x-text="town.travelpoints"></span>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </table>
+
+                            <p>If you've changed your mind, you may also return back to <a href="#"
+                                    @click="townAction = ''">town</a>.</p>
+                        </div>
+                    </div>
+                    <div x-show="townAction === 'Maps-confirm'">
+                        <div class="sectionWrapper">
+                            <p>You are buying the map to <span x-text="buyingmap ? towns[buyingmap].name : ''"></span>
+                                for <strong x-text="(buyingmap ? towns[buyingmap].mapprice : '') + ' gold'"></strong>.
+                                Is that okay?
+                            </p>
+
+                            <div>
+                                <button @click="buyMap(buyingmap)">Yes</button>
+                                <button @click="townAction = 'Maps'">No</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div x-show="currently === 'Exploring'">
+                    <div class="title"><img src="images/title_exploring.gif" alt="Exploring" /></div>
+                    <div class="sectionWrapper">
+                        <p>You are exploring the map, and nothing has happened. Continue exploring using the direction
+                            buttons or the Travel To menus.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="right">
+                <div class="title">
+                    <img src="images/button_character.gif" alt="Character" title="Character">
+                </div>
+                <div class="sectionWrapper">
+                    <div><strong><span x-text="name"></span></strong></div>
+                    <div>Level: <span x-text="level"></span></div>
+                    <div>Exp: <span x-text="exp"></span></div>
+                    <div>Gold: <span x-text="gold"></span></div>
+                    <div>HP: <span x-text="hp"></span></div>
+                    <div>MP: <span x-text="mp"></span></div>
+                    <div>TP: <span x-text="tp"></span></div>
+                    <div class="point-bars">
+                        <div class="point-bar-wrapper">
+                            <div class="point-bar" :style="'height: ' + Math.round(hp / maxhp * 100) + 'px'"
+                                :class="hp / maxhp >= 0.66 ? 'point-bar-green' : (hp / maxhp >= 0.33 ? 'point-bar-yellow' : 'point-bar-red')">
+                            </div>
+                        </div>
+                        <div class="point-bar-wrapper">
+                            <div class="point-bar" :style="'height: ' + Math.round(mp / maxmp * 100) + 'px'"
+                                :class="mp / maxmp >= 0.66 ? 'point-bar-green' : (mp / maxmp >= 0.33 ? 'point-bar-yellow' : 'point-bar-red')">
+                            </div>
+                        </div>
+                        <div class="point-bar-wrapper">
+                            <div class="point-bar" :style="'height: ' + Math.round(tp / maxtp * 100) + 'px'"
+                                :class="tp / maxtp >= 0.66 ? 'point-bar-green' : (tp / maxtp >= 0.33 ? 'point-bar-yellow' : 'point-bar-red')">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="point-bar-titles">
+                        <div class="point-bar-title">HP</div>
+                        <div class="point-bar-title">MP</div>
+                        <div class="point-bar-title">TP</div>
+                    </div>
+                    <div>Class: <span x-text="characterClass"></span></div>
+                    <div>Difficulty: <span x-text="difficulty"></span></div>
+                    <div>Strength: <span x-text="strength"></span></div>
+                    <div>Dexterity: <span x-text="dexterity"></span></div>
+                    <div>Attack Power: <span x-text="attackpower"></span></div>
+                    <div>Defense Power: <span x-text="defensepower"></span></div>
+                </div>
+
+                <div class="title">
+                    <img src="images/button_inventory.gif" alt="Inventory" title="Inventory">
+                </div>
+                <div class="sectionWrapper">
+                    <div>
+                        <img src="images/icon_weapon.gif" alt="Weapon" title="Weapon" /> Weapon: <span
+                            x-text="weapon.name ?? 'None'"></span>
+                    </div>
+                    <div>
+                        <img src="images/icon_armor.gif" alt="Armor" title="Armor" /> Armor: <span
+                            x-text="armor.name ?? 'None'"></span>
+                    </div>
+                    <div>
+                        <img src="images/icon_shield.gif" alt="Shield" title="Shield" /> Shield: <span
+                            x-text="shield.name ?? 'None'"></span>
+                    </div>
+                    <div>Slot 1: <span x-text="slot1.name ?? 'None'"></span></div>
+                    <div>Slot 2: <span x-text="slot2.name ?? 'None'"></span></div>
+                    <div>Slot 3: <span x-text="slot3.name ?? 'None'"></span></div>
+                </div>
+
+                <div class="title">
+                    <img src="images/button_fastspells.gif" alt="Spells" title="Spells">
+                </div>
+                <div class="sectionWrapper">
+                    <!-- todo: spells -->
+                </div>
+            </section>
+        </main>
+        <footer>
+            <p>Powered by Dragon Knight. Based on <a href="https://github.com/perberos/dragon-knight/tree/master">Dragon
+                    Knight</a>, which is based on the NES game <a
+                    href="https://en.wikipedia.org/wiki/Dragon_Quest_(video_game)">Dragon Warrior</a>. This is an
+                offline version written using <a href="https://alpinejs.dev/">Alpine.js</a>.</p>
+        </footer>
+    </div>
+</body>
+
+</html>

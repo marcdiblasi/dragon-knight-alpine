@@ -1,0 +1,154 @@
+body {
+    background-image: url(../images/background.jpg);
+    color: black;
+    font: 11px verdana;
+}
+
+a {
+    color: #663300;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+a:hover {
+    color: #330000;
+}
+
+.small {
+    font: 10px verdana;
+}
+
+.highlight {
+    color: red;
+}
+
+.light {
+    color: #999999;
+}
+
+.title {
+    border: solid 1px black;
+    background-color: #eeeeee;
+    font-weight: bold;
+    padding: 5px;
+    margin: 3px;
+}
+
+footer {
+    border: solid 1px black;
+    background-color: #eeeeee;
+    font: 10px verdana;
+}
+
+.container {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 3px;
+}
+
+header {
+    padding-bottom: 5px;
+    border-bottom: solid 2px black;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 180px 2fr 180px;
+}
+
+section.left {
+    border-right: solid 2px black;
+    grid-column: 1;
+}
+
+section.center {
+    grid-column: 2;
+}
+
+section.right {
+    border-left: solid 2px black;
+    grid-column: 3;
+}
+
+.setup {
+    width: 300px;
+    margin: 3px auto;
+}
+
+.class,
+.difficulty {
+    display: block;
+}
+
+.form-element {
+    margin: 5px 0;
+}
+
+.sectionWrapper {
+    margin: 5px;
+}
+
+.north-wrapper {
+    margin-bottom: -4px;
+}
+
+.south-wrapper {
+    margin-top: -4px;
+}
+
+footer {
+    padding: 0 3px;
+    margin-top: 16px;
+}
+
+.point-bars,
+.point-bar-titles {
+    width: 100%;
+    padding: 5px;
+}
+
+.point-bar-title {
+    display: inline;
+    width: 15px;
+    margin-right: 10px;
+    margin-left: 1px;
+}
+
+.point-bar-wrapper {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 15px;
+    height: 100px;
+    margin-right: 10px;
+    border: solid 1px black;
+}
+
+.point-bar {
+    display: flex;
+    width: 15px;
+    align-items: last baseline;
+    padding: 0px;
+}
+
+.point-bar-green {
+    background-image: url(../images/bars_green.gif);
+}
+
+.point-bar-yellow {
+    background-image: url(../images/bars_yellow.gif);
+}
+
+.point-bar-red {
+    background-image: url(../images/bars_red.gif);
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+.town-table {
+    width: 100%;
+    border-collapse: collapse;
+}
