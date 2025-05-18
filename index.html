@@ -50,6 +50,7 @@
     townAction: '',
     buyingitem: null,
     buyingmap: null,
+    exploringMessage: '',
     
     town: {},
     lat: 0,
@@ -202,6 +203,8 @@
                 return;
             }
 
+            this.exploringMessage = '';
+
             this.lat += x;
             this.long += y;
 
@@ -224,7 +227,7 @@
             }
 
             // Just exploring
-            currently = 'Exploring'
+            this.currently = 'Exploring'
         },
 
         restAtInn: function() {
@@ -387,24 +390,42 @@
             const maxLevel = Math.floor(Math.max(Math.abs(this.lat) + 5, Math.abs(this.long) + 5) / 5);
             const minLevel = maxLevel - 2 > 1 ? maxLevel - 2 : 1;
 
-            const monsterLevel = rand(minLevel, maxLevel);
-            const monsterId = rand(0, this.monsters[monsterLevel].length);
+            const monsterLevel = this.rand(minLevel, maxLevel);
+            const monsterId = this.rand(0, this.monsters[monsterLevel].length - 1);
             const monster = this.monsters[monsterLevel][monsterId];
 
-            this.monster = monster;
-            this.monster.hp = rand(monster.maxhp / 5 * 4, monster.maxhp);
+            this.currentFight = monster;
+            const maxhp = this.currentFight.maxhp;
+            this.currentFight.hp = this.rand(Math.ceil(maxhp / 5 * 4), maxhp);
             if (this.difficulty === 'Medium') {
-                this.monster.hp = Math.ceil(this.monster.hp * 1.2);
+                this.currentFight.hp = Math.ceil(this.currentFight.hp * 1.2);
             } else if (this.difficulty === 'Hard') {
-                this.monster.hp = Math.ceil(this.monster.hp * 1.5);
+                this.currentFight.hp = Math.ceil(this.currentFight.hp * 1.5);
             }
 
-            this.monster.sleep = 0;
-            this.monster.chanceToSwingFirst = (rand(1, 10) + Math.ceil(Math.sqrt(this.dexterity))) > (rand(1, 7) + Math.ceil(Math.sqrt(this.monster.maxdam)));
+            this.currentFight.sleep = 0;
+            this.currentFight.chanceToSwingFirst = (this.rand(1, 10) + Math.ceil(Math.sqrt(this.dexterity))) > (this.rand(1, 7) + Math.ceil(Math.sqrt(this.currentFight.maxdam)));
+
+            if (this.currentFight.chanceToSwingFirst) {
+                this.currentFight.yourTurn = 'The monster attacks first!';
+            } else {
+                this.currentFight.yourTurn = 'You attack first!';
+            }
         },
 
         rand: function(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
+        },
+
+        run: function() {
+            const chanceToRun = this.rand(4, 10) + Math.ceil(Math.sqrt(this.dexterity));
+            if (chanceToRun > (this.rand(1, 5) + Math.ceil(Math.sqrt(this.currentFight.maxdam)))) {
+                this.currently = 'Exploring';
+                this.exploringMessage = 'You successfully ran away from the fight!';
+            } else {
+                this.currentFight.yourTurn = 'You tried to run away, but were blocked in front!';
+                //this.monstersTurn();
+            }
         },
     }" x-init="load()">
 
@@ -629,9 +650,24 @@
                 <div x-show="currently === 'Exploring'">
                     <div class="title"><img src="images/title_exploring.gif" alt="Exploring" /></div>
                     <div class="sectionWrapper">
+                        <p x-text="exploringMessage" x-show="exploringMessage.length > 0"></p>
                         <p>You are exploring the map, and nothing has happened. Continue exploring using the direction
                             buttons or the Travel To menus.</p>
                     </div>
+                </div>
+                <div x-show="currently === 'Fighting'">
+                    <div class="title"><img src="images/title_fighting.gif" alt="Fighting" /></div>
+                    <div class="sectionWrapper">
+                        <p x-text="currentFight.yourTurn"
+                            x-show="currentFight.hasOwnProperty('yourTurn') && currentFight.yourTurn.length > 0"></p>
+                        <p>You are fighting a <strong x-text="currentFight.name"></strong>!</p>
+                        <p>Monster's HP: <strong x-text="currentFight.hp"></span></strong>
+                        <p>Command?</p>
+                        <p><button>Fight</button></p>
+                        <p><select></select><button>Spell</button></p>
+                        <p><button @click="run()">Run</button></p>
+                    </div>
+
                 </div>
             </section>
 
