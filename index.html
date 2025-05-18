@@ -13,21 +13,28 @@
                 init() {
                     // Load saved state or use initial state
                     const stored = localStorage.getItem(storageKey);
-                    const data = stored ? JSON.parse(stored) : initialState;
+                    try {
+                        const data = stored ? JSON.parse(stored) : initialState;
 
-                    // Assign all properties to Alpine's reactive system
-                    Object.keys(data).forEach(key => {
-                        this[key] = data[key];
+                        // Assign all properties to Alpine's reactive system
+                        Object.keys(data).forEach(key => {
+                            this[key] = data[key];
 
-                        // Watch each property individually
-                        this.$watch(key, (value) => {
-                            const stateToSave = {};
-                            Object.keys(initialState).forEach(k => {
-                                stateToSave[k] = this[k];
+                            // Watch each property individually
+                            this.$watch(key, (value) => {
+                                const stateToSave = {};
+                                Object.keys(initialState).forEach(k => {
+                                    stateToSave[k] = this[k];
+                                });
+                                localStorage.setItem(storageKey, JSON.stringify(stateToSave));
                             });
-                            localStorage.setItem(storageKey, JSON.stringify(stateToSave));
                         });
-                    });
+                    } catch (e) {
+                        console.error('Failed to parse stored state:', stored);
+                        return;
+                    }
+
+
                 },
                 ...initialState // Spread initial state for autocomplete
             };
