@@ -396,7 +396,7 @@
 
             this.currentFight = monster;
             const maxhp = this.currentFight.maxhp;
-            this.currentFight.hp = this.rand(Math.ceil(maxhp / 5 * 4), maxhp);
+            this.currentFight.hp = this.rand(maxhp / 5 * 4, maxhp);
             if (this.difficulty === 'Medium') {
                 this.currentFight.hp = Math.ceil(this.currentFight.hp * 1.2);
             } else if (this.difficulty === 'Hard') {
@@ -408,12 +408,15 @@
 
             if (this.currentFight.chanceToSwingFirst) {
                 this.currentFight.yourTurn = 'The monster attacks first!';
+                this.monstersTurn();
             } else {
                 this.currentFight.yourTurn = 'You attack first!';
             }
         },
 
         rand: function(min, max) {
+            min = Math.round(min);
+            max = Math.round(max);
             return Math.floor(Math.random() * (max - min + 1)) + min;
         },
 
@@ -424,9 +427,62 @@
                 this.exploringMessage = 'You successfully ran away from the fight!';
             } else {
                 this.currentFight.yourTurn = 'You tried to run away, but were blocked in front!';
-                //this.monstersTurn();
+                this.monstersTurn();
             }
         },
+
+        monstersTurn: function() {
+            this.currentFight.monstersTurn = '';
+            if (this.currentFight.sleep) {
+                if (this.rand(1, 15) > this.currentFight.sleep) {
+                    this.currentFight.sleep = 0;
+                    this.currentFight.monstersTurn += 'The monster woke up!';
+                } else {
+                    this.currentFight.monstersTurn = 'The monster is still asleep.';
+                    return;
+                }
+            }
+
+            let toHit = this.rand(this.currentFight.maxdam / 2, this.currentFight.maxdam);
+            if (this.difficulty === 'Medium') {
+                toHit = Math.ceil(toHit * 1.2);
+            } else if (this.difficulty === 'Hard') {
+                toHit = Math.ceil(toHit * 1.5);
+            }
+
+            const toBlock = Math.ceil(this.rand(this.defensepower * 3 / 4, this.defensepower) / 4);
+            const toDodge = this.rand(1, 150);
+            let personDamage = 0;
+
+            if (toDodge <= Math.sqrt(this.dexterity)) {
+                toHit = 0;
+                this.currentFight.monstersTurn += 'You dodge the monster's attack. No damage has been scored.';
+            } else {
+                personDamage = toHit - toBlock;
+                if (this.currentUberDefense > 0) {
+                    personDamage = Math.ceil(personDamage * (this.currentUberDefense / 100));
+                }
+
+                if (personDamage < 1) {
+                    personDamage = 1;
+                }
+
+                this.currentFight.monstersTurn = `The monster attacks you for ${persondamage} damage.`;
+                this.hp -= personDamage;
+
+                if (this.hp < 1) {
+                    this.playerDied();
+                }
+            }
+        },
+
+        playerDied: function() {
+            this.currentFight = {};
+            this.currently = 'You Died';
+            this.gold = Math.ceil(this.gold / 2);
+            this.hp = Math.ceil(this.maxhp / 4);
+            this.exploringMessage = 'You have died. Please reload the page to start a new game.';
+        }
     }" x-init="load()">
 
         <header>
@@ -662,12 +718,24 @@
                             x-show="currentFight.hasOwnProperty('yourTurn') && currentFight.yourTurn.length > 0"></p>
                         <p>You are fighting a <strong x-text="currentFight.name"></strong>!</p>
                         <p>Monster's HP: <strong x-text="currentFight.hp"></span></strong>
+                        <p x-text="currentFight.monstersTurn"
+                            x-show="currentFight.hasOwnProperty('monstersTurn') && currentFight.monstersTurn.length > 0">
+                        </p>
                         <p>Command?</p>
                         <p><button>Fight</button></p>
                         <p><select></select><button>Spell</button></p>
                         <p><button @click="run()">Run</button></p>
                     </div>
 
+                </div>
+                <div x-show="currently === 'You Died'">
+                    <div class="sectionWrapper">
+                        <p><strong>You have died.</strong></p>
+                        <p>As a consequence, you've lost half of your gold. However, you have been given back a portion
+                            of your hit points to continue your journey.</p>
+                        <p>You may now continue back to <a href="#" @click="currently = 'In Town'">town</a>, and we hope
+                            you fair better next time.</p>
+                    </div>
                 </div>
             </section>
 
