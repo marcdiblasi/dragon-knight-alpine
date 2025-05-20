@@ -456,7 +456,7 @@
 
             if (toDodge <= Math.sqrt(this.dexterity)) {
                 toHit = 0;
-                this.currentFight.monstersTurn += 'You dodge the monster's attack. No damage has been scored.';
+                this.currentFight.monstersTurn += 'You dodge the monster\'s attack. No damage has been scored.';
             } else {
                 personDamage = toHit - toBlock;
                 if (this.currentUberDefense > 0) {
@@ -467,7 +467,7 @@
                     personDamage = 1;
                 }
 
-                this.currentFight.monstersTurn = `The monster attacks you for ${persondamage} damage.`;
+                this.currentFight.monstersTurn = `The monster attacks you for ${personDamage} damage.`;
                 this.hp -= personDamage;
 
                 if (this.hp < 1) {
@@ -477,14 +477,122 @@
         },
 
         playerDied: function() {
-            this.currentFight = {};
             this.currently = 'You Died';
+            this.lat = 0;
+            this.long = 0;
+
             this.gold = Math.ceil(this.gold / 2);
             this.hp = Math.ceil(this.maxhp / 4);
-            this.exploringMessage = 'You have died. Please reload the page to start a new game.';
+        },
+
+        fight: function() {
+            this.currentFight.yourTurn = '';
+
+            let toHit = Math.ceil(this.rand(this.attackpower * 3 / 4, this.attackpower) / 3);
+            const toExcellent = this.rand(1, 150);
+            if (toExcellent < Math.sqrt(this.strength)) {
+                toHit = toHit * 1.5;
+                this.currentFight.yourTurn += 'Excellent hit!<br />';
+            }
+
+            const toBlock = Math.ceil(this.rand(this.currentFight.armor * 3 / 4, this.currentFight.armor) / 3);
+            const toDodge = this.rand(1, 200);
+            if (toDodge <= Math.sqrt(this.currentFight.armor)) {
+                toHit = 0;
+                this.currentFight.yourTurn += 'The monster is dodging. No damage has been scored.<br />';
+            } else {
+                let monsterDamage = toHit - toBlock;
+                if (monsterDamage < 1) {
+                    monsterDamage = 1;
+                }
+                if (this.currentUberDamage > 0) {
+                    monsterDamage += Math.ceil(monsterDamage * (this.currentUberDamage / 100));
+                }
+                this.currentFight.hp -= monsterDamage;
+
+                this.currentFight.yourTurn += `You attack the monster for ${monsterDamage} damage.`;
+
+                if (this.currentFight.hp < 1) {
+                    this.victory();
+                }
+            }
+
+            this.monstersTurn();
+        },
+
+        victory: function() {
+            let exp = this.rand(this.currentFight.maxexp * 5 / 6, this.currentFight.maxexp);
+            if (exp < 1) {
+                exp = 1;
+            }
+
+            if (this.difficulty === 'Medium') {
+                exp = Math.ceil(exp * 1.2);
+            } else if (this.difficulty === 'Hard') {
+                exp = Math.ceil(exp * 1.5);
+            }
+
+            if (this.expBonus > 0) {
+                exp += Math.ceil(exp * (this.expBonus / 100));
+            }
+
+            this.exp += exp;
+
+            let gold = this.rand(this.currentFight.maxgold * 5 / 6, this.currentFight.maxgold);
+            if (gold < 1) {
+                gold = 1;
+            }
+
+            if (this.difficulty === 'Medium') {
+                gold = Math.ceil(gold * 1.2);
+            } else if (this.difficulty === 'Hard') {
+                gold = Math.ceil(gold * 1.5);
+            }
+
+            if (this.goldBonus > 0) {
+                gold += Math.ceil(gold * (this.goldBonus / 100));
+            }
+
+            this.gold += gold;
+
+            this.exploringMessage = `Congratulations. You have defeated the ${this.currentFight.name}.<br />`
+                + `You gain ${exp} experience.<br />`
+                + `You gain ${gold} gold.<br /><br />`;
+
+            this.currently = 'Exploring';
+
+            if (this.level >= 100) {
+                return;
+            }
+
+            const level = this.levels[this.characterClass][this.level + 1];
+            if (this.exp > level.exp) {
+                this.level++;
+
+                this.maxhp += level.hp;
+                this.maxmp += level.mp;
+                this.maxtp += level.tp;
+                this.strength += level.strength;
+                this.dexterity += level.dexterity;
+                this.attackpower += level.strength;
+                this.defensepower += level.dexterity;
+
+                if (level.spells !== 0) {
+                    this.spells.push(level.spells);
+                }
+
+                this.exploringMessage +=`<strong>You have gained a level!</strong><br /><br />`
+                    + `You gain ${level.hp} hit points.<br />`
+                    + `You gain ${level.mp} magic points.<br />`
+                    + `You gain ${level.tp} travel points.<br />`
+                    + `You gain ${level.strength} strength.<br />`
+                    + `You gain ${level.dexterity} dexterity.<br />`
+                    + (level.spell !== 0 ? `You have learned a new spell.<br />` : '')
+                    + `You can now continue exploring.`;
+
+            }
         }
     }" x-init="load()">
-
         <header>
             <img src="images/logo.gif" alt="Dragon Knight" class="logo" />
             <!-- todo: add help -->
@@ -699,14 +807,13 @@
                                 <button @click="buyMap(buyingmap)">Yes</button>
                                 <button @click="townAction = 'Maps'">No</button>
                             </div>
-
                         </div>
                     </div>
                 </div>
                 <div x-show="currently === 'Exploring'">
                     <div class="title"><img src="images/title_exploring.gif" alt="Exploring" /></div>
                     <div class="sectionWrapper">
-                        <p x-text="exploringMessage" x-show="exploringMessage.length > 0"></p>
+                        <p x-html="exploringMessage" x-show="exploringMessage.length > 0"></p>
                         <p>You are exploring the map, and nothing has happened. Continue exploring using the direction
                             buttons or the Travel To menus.</p>
                     </div>
@@ -714,16 +821,14 @@
                 <div x-show="currently === 'Fighting'">
                     <div class="title"><img src="images/title_fighting.gif" alt="Fighting" /></div>
                     <div class="sectionWrapper">
-                        <p x-text="currentFight.yourTurn"
-                            x-show="currentFight.hasOwnProperty('yourTurn') && currentFight.yourTurn.length > 0"></p>
+                        <p x-text="currentFight.yourTurn" x-show="currentFight.yourTurn.length > 0"></p>
                         <p>You are fighting a <strong x-text="currentFight.name"></strong>!</p>
                         <p>Monster's HP: <strong x-text="currentFight.hp"></span></strong>
-                        <p x-text="currentFight.monstersTurn"
-                            x-show="currentFight.hasOwnProperty('monstersTurn') && currentFight.monstersTurn.length > 0">
+                        <p x-text="currentFight.monstersTurn" x-show="currentFight.monstersTurn.length > 0">
                         </p>
                         <p>Command?</p>
-                        <p><button>Fight</button></p>
-                        <p><select></select><button>Spell</button></p>
+                        <p><button @click="fight()">Fight</button></p>
+                        <p x-show="spells.length"><select></select><button>Spell</button></p>
                         <p><button @click="run()">Run</button></p>
                     </div>
 

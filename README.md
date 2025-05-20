@@ -26,5 +26,3 @@ This is a work in progress, and there are currently things that haven't been add
 
 - Fast spells
 - Spells in a fight
-- Death mechanics haven't been tested at all
-- Fighting mechanics aren't 100% yet
