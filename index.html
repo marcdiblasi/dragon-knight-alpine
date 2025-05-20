@@ -748,9 +748,9 @@
                     <div>Level: <span x-text="level"></span></div>
                     <div>Exp: <span x-text="exp"></span></div>
                     <div>Gold: <span x-text="gold"></span></div>
-                    <div>HP: <span x-text="hp"></span></div>
-                    <div>MP: <span x-text="mp"></span></div>
-                    <div>TP: <span x-text="tp"></span></div>
+                    <div>HP: <span x-text="hp"></span> / <span x-text="maxhp"></span></div>
+                    <div>MP: <span x-text="mp"></span> / <span x-text="maxmp"></span></div>
+                    <div>TP: <span x-text="tp"></span> / <span x-text="maxtp"></span></div>
                     <div class="point-bars">
                         <div class="point-bar-wrapper">
                             <div class="point-bar" :style="'height: ' + Math.round(hp / maxhp * 100) + 'px'"
