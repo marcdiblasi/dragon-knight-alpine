@@ -591,7 +591,35 @@
                     + `You can now continue exploring.`;
 
             }
-        }
+        },
+
+        heal: function(spell) {
+            if (this.mp < spell.mp) {
+                return;
+            }
+
+            if (this.hp === this.maxhp) {
+                this.exploringMessage = `You are already at full health.`;
+                return;
+            }
+
+            this.mp -= spell.mp;
+
+            let heal = spell.attribute;
+            if (this.difficulty === 'Medium') {
+                heal = Math.ceil(heal * 1.2);
+            } else if (this.difficulty === 'Hard') {
+                heal = Math.ceil(heal * 1.5);
+            }
+
+            if (this.hp + heal > this.maxhp) {
+                heal = this.maxhp - this.hp;
+            }
+
+            this.hp += heal;
+
+            this.exploringMessage = `You have cast the <strong>${spell.name}</strong> spell, and gained <strong>${heal}</strong> Hit Points.`;
+        },
     }" x-init="load()">
         <header>
             <img src="images/logo.gif" alt="Dragon Knight" class="logo" />
@@ -911,7 +939,12 @@
                     <img src="images/button_fastspells.gif" alt="Spells" title="Spells">
                 </div>
                 <div class="sectionWrapper">
-                    <!-- todo: spells -->
+                    <template x-for="spell in learnedSpells" :key="spell">
+                        <div x-show="spells[spell].type === 1">
+                            <a href="#" @click="heal(spells[spell])" x-text="spells[spell].name"></a>
+                            (<span x-text="spells[spell].mp"></span> MP)
+                        </div>
+                    </template>
                 </div>
             </section>
         </main>
