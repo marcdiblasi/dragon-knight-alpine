@@ -82,7 +82,7 @@
 
     dropcode: 0,
 
-    spells: [],
+    learnedSpells: [],
     unlockedTowns: [1],
 
     currentFight: {}, // monster, hp, sleep, immune, 
@@ -578,7 +578,7 @@
                 this.defensepower += level.dexterity;
 
                 if (level.spells !== 0) {
-                    this.spells.push(level.spells);
+                    this.learnedSpells.push(level.spells);
                 }
 
                 this.exploringMessage +=`<strong>You have gained a level!</strong><br /><br />`
@@ -828,7 +828,7 @@
                         </p>
                         <p>Command?</p>
                         <p><button @click="fight()">Fight</button></p>
-                        <p x-show="spells.length"><select></select><button>Spell</button></p>
+                        <p x-show="learnedSpells.length"><select></select><button>Spell</button></p>
                         <p><button @click="run()">Run</button></p>
                     </div>
 
