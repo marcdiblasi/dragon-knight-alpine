@@ -85,9 +85,7 @@
     learnedSpells: [],
     unlockedTowns: [1],
 
-    currentFight: {}, // monster, hp, sleep, immune, 
-    currentUberDamage: 0,
-    currentUberDefense: 0,
+    currentFight: {},
 }, 'dragon-knight')">
     <div class="container" x-data="{
         drops: {
@@ -396,12 +394,7 @@
 
             this.currentFight = monster;
             const maxhp = this.currentFight.maxhp;
-            this.currentFight.hp = this.rand(maxhp / 5 * 4, maxhp);
-            if (this.difficulty === 'Medium') {
-                this.currentFight.hp = Math.ceil(this.currentFight.hp * 1.2);
-            } else if (this.difficulty === 'Hard') {
-                this.currentFight.hp = Math.ceil(this.currentFight.hp * 1.5);
-            }
+            this.currentFight.hp = this.adjustForDiff(this.rand(maxhp / 5 * 4, maxhp));
 
             this.currentFight.sleep = 0;
             this.currentFight.chanceToSwingFirst = (this.rand(1, 10) + Math.ceil(Math.sqrt(this.dexterity))) > (this.rand(1, 7) + Math.ceil(Math.sqrt(this.currentFight.maxdam)));
@@ -443,12 +436,7 @@
                 }
             }
 
-            let toHit = this.rand(this.currentFight.maxdam / 2, this.currentFight.maxdam);
-            if (this.difficulty === 'Medium') {
-                toHit = Math.ceil(toHit * 1.2);
-            } else if (this.difficulty === 'Hard') {
-                toHit = Math.ceil(toHit * 1.5);
-            }
+            let toHit = this.adjustForDiff(this.rand(this.currentFight.maxdam / 2, this.currentFight.maxdam));
 
             const toBlock = Math.ceil(this.rand(this.defensepower * 3 / 4, this.defensepower) / 4);
             const toDodge = this.rand(1, 150);
@@ -459,8 +447,8 @@
                 this.currentFight.monstersTurn += 'You dodge the monster\'s attack. No damage has been scored.';
             } else {
                 personDamage = toHit - toBlock;
-                if (this.currentUberDefense > 0) {
-                    personDamage = Math.ceil(personDamage * (this.currentUberDefense / 100));
+                if (this.currentFight.uberDefense > 0) {
+                    personDamage = Math.ceil(personDamage * (this.currentFight.uberDefense / 100));
                 }
 
                 if (personDamage < 1) {
@@ -505,8 +493,8 @@
                 if (monsterDamage < 1) {
                     monsterDamage = 1;
                 }
-                if (this.currentUberDamage > 0) {
-                    monsterDamage += Math.ceil(monsterDamage * (this.currentUberDamage / 100));
+                if (this.currentFight.uberDamage > 0) {
+                    monsterDamage += Math.ceil(monsterDamage * (this.currentFight.uberDamage / 100));
                 }
                 this.currentFight.hp -= monsterDamage;
 
@@ -526,11 +514,7 @@
                 exp = 1;
             }
 
-            if (this.difficulty === 'Medium') {
-                exp = Math.ceil(exp * 1.2);
-            } else if (this.difficulty === 'Hard') {
-                exp = Math.ceil(exp * 1.5);
-            }
+            exp = this.adjustForDiff(exp);
 
             if (this.expBonus > 0) {
                 exp += Math.ceil(exp * (this.expBonus / 100));
@@ -543,11 +527,7 @@
                 gold = 1;
             }
 
-            if (this.difficulty === 'Medium') {
-                gold = Math.ceil(gold * 1.2);
-            } else if (this.difficulty === 'Hard') {
-                gold = Math.ceil(gold * 1.5);
-            }
+            gold = this.adjustForDiff(gold);
 
             if (this.goldBonus > 0) {
                 gold += Math.ceil(gold * (this.goldBonus / 100));
