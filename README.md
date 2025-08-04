@@ -24,4 +24,4 @@ Clone the repo and open index.html. I want to set up some static website so all 
 
 This is a work in progress, and there are currently things that haven't been added yet. Expect things to break occasionally. Here's a list of known issues and things that haven't been implemented yet
 
-- Spells in a fight
+- "View Map" button

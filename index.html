@@ -573,24 +573,52 @@
             }
         },
 
-        heal: function(spell) {
-            if (this.mp < spell.mp) {
-                return;
+        adjustForDiff: function(value) {
+            if (this.difficulty === 'Medium') {
+                return Math.ceil(value * 1.2);
+            } else if (this.difficulty === 'Hard') {
+                return Math.ceil(value * 1.5);
             }
+            return value;
+        },
 
-            if (this.hp === this.maxhp) {
-                this.exploringMessage = `You are already at full health.`;
+        doSpell: function(spell) {
+            if (this.mp < spell.mp) {
                 return;
             }
 
             this.mp -= spell.mp;
 
-            let heal = spell.attribute;
-            if (this.difficulty === 'Medium') {
-                heal = Math.ceil(heal * 1.2);
-            } else if (this.difficulty === 'Hard') {
-                heal = Math.ceil(heal * 1.5);
+            if (spell.type === 1) {
+                this.heal(spell);
+            } else {
+                if (this.currentFight.immune) {
+                    this.currentFight.yourTurn = `You have cast the ${spell.name}
+                        spell, but the monster is immune to it.`;
+                    return;
+                }
+
+                if (spell.type === 2) {
+                    this.hurt(spell)
+                } else if (spell.type === 3) {
+                    this.sleep(spell)
+                } else if (spell.type === 4) {
+                    this.damage(spell)
+                } else if (spell.type === 5) {
+                    this.defense(spell)
+                }
             }
+        },
+
+        heal: function(spell) {
+            if (this.hp === this.maxhp) {
+                this.exploringMessage = `You are already at full health.`;
+                this.mp += spell.mp;
+
+                return;
+            }
+
+            let heal = this.adjustForDiff(spell.attribute);
 
             if (this.hp + heal > this.maxhp) {
                 heal = this.maxhp - this.hp;
@@ -598,7 +626,45 @@
 
             this.hp += heal;
 
-            this.exploringMessage = `You have cast the <strong>${spell.name}</strong> spell, and gained <strong>${heal}</strong> Hit Points.`;
+            const message = `You have cast the <strong>${spell.name}</strong> spell, and gained <strong>${heal}</strong> Hit Points.`;
+
+            if (this.currently === 'Fighting') {
+                this.currentFight.yourTurn = message;
+            } else {
+                this.exploringMessage = message;
+            }
+        },
+
+        hurt: function(spell) {
+            let damage = this.rand(spell.attribute * 5 / 6, spell.attribute);
+
+            this.currentFight.hp -= damage;
+
+            if (this.currentFight.hp < 1) {
+                this.victory();
+            }
+
+            this.currentFight.yourTurn = `You have cast the <strong>${spell.name}</strong> spell for <strong>${damage}</strong> damage.`;
+        },
+
+        sleep: function(spell) {
+            this.currentFight.sleep = spell.attribute;
+
+            this.currentFight.yourTurn = `You have cast the <strong>${spell.name}</strong> spell, and the monster is now asleep.`;
+        },
+
+        damage: function(spell) {
+            this.currentFight.uberDamage = spell.attribute;
+
+            this.currentFight.yourTurn = `You have cast the <strong>${spell.name}</strong> spell and
+            will gain <strong>${spell.attribute}%</strong> damage until the end of this fight.`;
+        },
+
+        defense: function(spell) {
+            this.currentFight.uberDefense = spell.attribute;
+
+            this.currentFight.yourTurn = `You have cast the <strong>${spell.name}</strong> spell and
+            will gain <strong>${spell.attribute}%</strong> defense until the end of this fight.`;
         },
     }" x-init="load()">
         <header>
@@ -836,7 +902,14 @@
                         </p>
                         <p>Command?</p>
                         <p><button @click="fight()">Fight</button></p>
-                        <p x-show="learnedSpells.length"><select></select><button>Spell</button></p>
+                        <p x-show="learnedSpells.length">
+                            <select x-model="currentFight.spell">
+                                <template x-for="spell in learnedSpells" :key="spell">
+                                    <option :value="spell" x-text="spells[spell].name"></option>
+                                </template>
+                            </select>
+                            <button @click="doSpell(currentFight.spell)">Spell</button>
+                        </p>
                         <p><button @click="run()">Run</button></p>
                     </div>
 
