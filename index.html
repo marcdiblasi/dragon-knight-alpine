@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html x-data="{ isMapOpen: false }" lang="en">
 
 <head>
     <title>Dragon Knight - Alpine Edition</title>
@@ -41,6 +41,18 @@
         }
     </script>
 </head>
+
+<div class="modal" role="dialog" tabindex="-1" x-show="isMapOpen" x-on:click.away="isMapOpen = false" x-cloak
+    x-transition>
+    <div class="model-inner">
+        <div class="modal-header">
+            <h3>World Map</h3>
+            <button aria-label="Close" x-on:click="isMapOpen=false">✖</button>
+        </div>
+        <img src="images/map.gif" alt="World Map" class="world-map" />
+    </div>
+</div>
+<div class="overlay" x-show="isMapOpen" x-cloak></div>
 
 <body x-data="createPersistentState({
     name: '',
@@ -716,7 +728,7 @@
                     });"></span></div>
                     <div>Latitude: <span x-text="latitude()"></span></div>
                     <div>Longitude: <span x-text="longitude" ()></span></div>
-                    View Map
+                    <button x-on:click="isMapOpen = true">View Map</button>
 
                     <div class="north-wrapper"><a class="move-north" @click="move(0, -1)"><img
                                 src="images/compass_01.gif" /></a></div>
