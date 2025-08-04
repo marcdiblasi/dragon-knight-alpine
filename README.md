@@ -18,7 +18,7 @@ I wanted it to be simple enough that it doesn't need a build process. It's just 
 
 ## How to Play
 
-Clone the repo and open index.html. I want to set up some static website so all you need to do is hit a url, but that'll happen when it happens.
+Clone the repo and open index.html, or <a href="https://dk-alpine.marcdiblasi.com/">play here</a>
 
 ## Known Issues
 
