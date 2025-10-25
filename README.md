@@ -18,7 +18,7 @@ I wanted it to be simple enough that it doesn't need a build process. It's just 
 
 ## How to Play
 
-Clone the repo and open index.html, or <a href="https://dk-alpine.marcdiblasi.com/">play here</a>
+Clone the repo and open index.html, or <a href="https://marcdiblasi.github.io/dragon-knight-alpine/">play here</a>
 
 ## Known Issues
 
